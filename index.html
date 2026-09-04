@@ -3,103 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Юля сегодня...</title>
+    <title>Юля сегодня</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
             background-color: #f0f2f5;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            text-align: center;
+            color: #333;
         }
         .container {
+            text-align: center;
             padding: 20px;
-            max-width: 600px;
-            width: 100%;
+            border-radius: 15px;
+            background-color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 90%;
+            width: 400px;
         }
         h1 {
             font-size: 2rem;
-            color: #333;
             margin-bottom: 10px;
-            line-height: 1.4;
+            color: #4a4a4a;
         }
-        .word {
+        #word-display {
+            font-size: 3rem;
             font-weight: bold;
-            color: #007bff;
+            color: #ff6b6b;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             word-wrap: break-word;
         }
-        /* Стили для кнопки тестирования (можно убрать потом) */
-        .debug-btn {
-            margin-top: 30px;
+        .loading {
+            font-size: 1.5rem;
+            color: #888;
+        }
+        .error {
+            color: #888;
+            font-style: italic;
+        }
+        button {
+            margin-top: 20px;
             padding: 10px 20px;
-            background-color: #e0e0e0;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
             border: none;
             border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            color: #555;
-            transition: background 0.2s;
+            transition: background-color 0.3s;
         }
-        .debug-btn:hover {
-            background-color: #d0d0d0;
-        }
-        .loading {
-            color: #888;
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 id="content">Юля сегодня <span class="loading">загружает...</span></h1>
-    
-    <!-- Кнопка для принудительного обновления (осталась для тестов) -->
-    <button class="debug-btn" onclick="loadWord()">Обновить слово</button>
+    <h1>Юля сегодня <span id="word-display" class="loading">...</span></h1>
+    <!-- Кнопка для тестирования, можно убрать потом -->
+    <button onclick="fetchWord()">Обновить слово</button>
 </div>
 
 <script>
     // ЗАМЕНИ ЭТУ ССЫЛКУ НА АДРЕС ТВОЕГО CLOUDFLARE WORKER
-    // Например: https://my-worker.username.workers.dev
-    const WORKER_URL = 'https://yulia-word.ratcatsnack.workers.dev/'; 
+    const WORKER_URL = 'https://yulia-word.ratcatsnack.workers.dev'; 
 
-    async function loadWord() {
-        const contentElement = document.getElementById('content');
-        
-        // Показываем состояние загрузки
-        contentElement.innerHTML = 'Юля сегодня <span class="loading">загружает...</span>';
+    async function fetchWord() {
+        const displayElement = document.getElementById('word-display');
+        displayElement.textContent = '...';
+        displayElement.className = 'loading';
 
         try {
-            // Делаем запрос к Cloudflare Worker
             const response = await fetch(WORKER_URL);
             
             if (!response.ok) {
                 throw new Error('Ошибка сети');
             }
 
-            // Получаем текст (слово) от воркера
-            const word = await response.text();
-
-            // Если воркер вернул пустоту или ошибку внутри текста (на всякий случай)
-            if (!word || word.trim() === '') {
-                contentElement.innerHTML = 'Юля сегодня <span class="word">...</span>';
+            // Важно: парсим ответ как JSON
+            const data = await response.json();
+            
+            // Берем только поле word из ответа {"word": "...", "date": "..."}
+            if (data && data.word) {
+                displayElement.textContent = data.word;
+                displayElement.className = '';
             } else {
-                // Вставляем полученное слово
-                contentElement.innerHTML = `Юля сегодня <span class="word">${word}</span>`;
+                throw new Error('Неверный формат данных');
             }
 
         } catch (error) {
-            console.error('Ошибка получения слова:', error);
-            // В случае любой ошибки показываем "..." как договаривались
-            contentElement.innerHTML = 'Юля сегодня <span class="word">...</span>';
+            console.error('Ошибка при получении слова:', error);
+            displayElement.textContent = '...';
+            displayElement.className = 'error';
         }
     }
 
-    // Запускаем загрузку при открытии страницы
-    loadWord();
+    // Загружаем слово при открытии страницы
+    fetchWord();
 </script>
 
 </body>
