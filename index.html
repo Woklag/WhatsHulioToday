@@ -7,7 +7,7 @@
     <style>
         body {
             margin: 0;
-            padding: 20px;
+            padding: 20;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -21,15 +21,7 @@
         #word-display {
             font-size: 1.5rem;
             font-weight: normal;
-            max-width: 90vw;
-        }
-        .label {
-            white-space: nowrap;
-        }
-        .dots {
-            display: inline-block;
-            min-width: 1.5em;
-            text-align: left;
+           
         }
         .loading-text::after {
             content: '';
@@ -44,9 +36,7 @@
     </style>
 </head>
 <body>
-    <div id="word-display">
-        <span class="label">Юля сегодня </span><span class="dots"><span class="loading-text"></span></span>
-    </div>
+    <div id="word-display"><span class="loading-text">Юля сегодня</span></div>
     <script>
         const WORKER_URL = 'https://yulia-word.ratcatsnack.workers.dev';
         const wordDisplay = document.getElementById('word-display');
@@ -65,7 +55,7 @@
                 const data = await response.json();
                 
                 if (data.word && data.word !== '...' && data.word !== 'Ошибка') {
-                    wordDisplay.innerHTML = '<span class="label">Юля сегодня </span>' + data.word;
+                    wordDisplay.innerHTML = 'Юля сегодня ' + data.word;
                 } else {
                     throw new Error('Получено некорректное слово: ' + data.word);
                 }
@@ -75,6 +65,7 @@
             }
         }
         
+        // Запуск при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
             fetchWord();
         });
