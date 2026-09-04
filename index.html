@@ -1,113 +1,117 @@
-<!DOCTYPE html>
-<html lang="ru">
+code = """<!DOCTYPE html>
+<html lang="ru"> 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Юля сегодня</title>
     <style>
         body {
+            margin: 0;
+            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            min-height: 100vh;
+            background-color: #f0f0f0;
             font-family: 'Arial', sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
+            text-align: center;
         }
         .container {
-            text-align: center;
-            padding: 20px;
+            background: white;
+            padding: 2rem;
             border-radius: 15px;
-            background-color: white;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             max-width: 90%;
             width: 400px;
         }
         h1 {
+            color: #333;
             font-size: 2rem;
-            margin-bottom: 10px;
-            color: #4a4a4a;
+            margin-bottom: 1rem;
         }
         #word-display {
-            font-size: 3rem;
-            font-weight: bold;
-            color: #ff6b6b;
-            min-height: 60px;
+            font-size: 1.5rem;
+            color: #555;
+            min-height: 3rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            word-wrap: break-word;
-        }
-        .loading {
-            font-size: 1.5rem;
-            color: #888;
-        }
-        .error {
-            color: #888;
-            font-style: italic;
+            margin-bottom: 2rem;
+            font-weight: bold;
         }
         button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 1rem;
-            cursor: pointer;
             background-color: #007bff;
             color: white;
             border: none;
+            padding: 10px 20px;
             border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
             transition: background-color 0.3s;
         }
         button:hover {
             background-color: #0056b3;
         }
+        .loading {
+            color: #888;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h1>Юля сегодня <span id="word-display" class="loading">...</span></h1>
-    <!-- Кнопка для тестирования, можно убрать потом -->
-    <button onclick="fetchWord()">Обновить слово</button>
-</div>
-
-<script>
-    // ЗАМЕНИ ЭТУ ССЫЛКУ НА АДРЕС ТВОЕГО CLOUDFLARE WORKER
-    const WORKER_URL = 'yulia-word.ratcatsnack.workers.dev'; 
-
-    async function fetchWord() {
-        const displayElement = document.getElementById('word-display');
-        displayElement.textContent = '...';
-        displayElement.className = 'loading';
-
-        try {
-            const response = await fetch(WORKER_URL);
-            
-            if (!response.ok) {
-                throw new Error('Ошибка сети');
+    <div class="container">
+        <h1>Юля сегодня <span id="word-display" class="loading">загрузка...</span></h1>
+        <button onclick="forceUpdate()">Обновить слово (Тест)</button>
+    </div>
+    <script>
+        // ЗАМЕНИТЕ ЭТУ ССЫЛКУ НА ВАШ РЕАЛЬНЫЙ URL CLOUDFLARE WORKER
+        const WORKER_URL = 'https://yulia-word.ratcatsnack.workers.dev';
+        const wordDisplay = document.getElementById('word-display');
+        async function fetchWord(isManual = false) {
+            if (!isManual) {
+                wordDisplay.textContent = 'загрузка...';
+                wordDisplay.classList.add('loading');
             }
-
-            // Важно: парсим ответ как JSON
-            const data = await response.json();
-            
-            // Берем только поле word из ответа {"word": "...", "date": "..."}
-            if (data && data.word) {
-                displayElement.textContent = data.word;
-                displayElement.className = '';
-            } else {
-                throw new Error('Неверный формат данных');
+            try {
+                const response = await fetch(WORKER_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                if (data.word) {
+                    wordDisplay.textContent = data.word;
+                    wordDisplay.classList.remove('loading');
+                    console.log('Успешно получено слово:', data.word, 'от', data.source || 'источник неизвестен');
+                } else {
+                    throw new Error('Пустой ответ от сервера');
+                }
+            } catch (error) {
+                console.error('Ошибка при получении слова:', error);
+                wordDisplay.textContent = '...';
+                wordDisplay.classList.remove('loading');
+                if (isManual) {
+                    alert('Не удалось обновить слово. Проверьте консоль (F12) для деталей.');
+                }
             }
-
-        } catch (error) {
-            console.error('Ошибка при получении слова:', error);
-            displayElement.textContent = '...';
-            displayElement.className = 'error';
         }
-    }
-
-    // Загружаем слово при открытии страницы
-    fetchWord();
-</script>
-
+        function forceUpdate() {
+            // Для ручного обновления можно добавить параметр, чтобы обойти кэш браузера
+            fetchWord(true);
+        }
+        // Запуск при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchWord(false);
+        });
+    </script>
 </body>
-</html>
+</html>"""
+
+with open('/workspace/index.html', 'w', encoding='utf-8') as f:
+    f.write(code)
+print("File written successfully")
