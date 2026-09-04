@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Юля сегодня...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #000000;
+            font-family: sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+        }
+        #content {
+            font-size: clamp(24px, 5vw, 48px);
+            padding: 20px;
+            max-width: 90%;
+        }
+        #test-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            background: #eee;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            opacity: 0.5;
+        }
+        #test-btn:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div id="content">Загрузка...</div>
+<button id="test-btn" onclick="forceNewWord()">Попробовать другое (тест)</button>
+
+<script>
+    const WIKI_URL = "https://ru.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json&origin=*";
+    const WIKTIONARY_URL = "https://ru.wiktionary.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json&origin=*";
+
+    function getMoscowDateKey() {
+        const now = new Date();
+        const moscowTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+        return moscowTime.toISOString().split('T')[0];
+    }
+
+    async function fetchWord() {
+        // 50% шанс выбрать Википедию или Викисловарь
+        const useWiki = Math.random() < 0.5;
+        const url = useWiki ? WIKI_URL : WIKTIONARY_URL;
+        
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.query.random[0].title;
+        } catch (error) {
+            console.error("Ошибка:", error);
+            return "красивая";
+        }
+    }
+
+    async function init() {
+        const dateKey = getMoscowDateKey();
+        const storedDate = localStorage.getItem('julia_date');
+        const storedWord = localStorage.getItem('julia_word');
+
+        if (storedDate === dateKey && storedWord && !window.forceMode) {
+            document.getElementById('content').innerText = `Юля сегодня ${storedWord}`;
+            return;
+        }
+
+        const newWord = await fetchWord();
+        localStorage.setItem('julia_date', dateKey);
+        localStorage.setItem('julia_word', newWord);
+        document.getElementById('content').innerText = `Юля сегодня ${newWord}`;
+    }
+
+    window.forceNewWord = async function() {
+        window.forceMode = true;
+        document.getElementById('content').innerText = "Загрузка...";
+        const newWord = await fetchWord();
+        document.getElementById('content').innerText = `Юля сегодня ${newWord}`;
+        window.forceMode = false;
+    };
+
+    init();
+</script>
+
+</body>
+</html>
