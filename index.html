@@ -1,4 +1,4 @@
-code = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru"> 
 <head>
     <meta charset="UTF-8">
@@ -64,16 +64,17 @@ code = """<!DOCTYPE html>
         <button onclick="forceUpdate()">Обновить слово (Тест)</button>
     </div>
     <script>
-        // ЗАМЕНИТЕ ЭТУ ССЫЛКУ НА ВАШ РЕАЛЬНЫЙ URL CLOUDFLARE WORKER
         const WORKER_URL = 'https://yulia-word.ratcatsnack.workers.dev';
         const wordDisplay = document.getElementById('word-display');
+        
         async function fetchWord(isManual = false) {
             if (!isManual) {
                 wordDisplay.textContent = 'загрузка...';
                 wordDisplay.classList.add('loading');
             }
             try {
-                const response = await fetch(WORKER_URL, {
+                // Добавляем timestamp для обхода кэша браузера
+                const response = await fetch(WORKER_URL + '?t=' + Date.now(), {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json'
@@ -84,34 +85,31 @@ code = """<!DOCTYPE html>
                 }
                 const data = await response.json();
                 
-                if (data.word) {
+                if (data.word && data.word !== '...' && data.word !== 'Ошибка') {
                     wordDisplay.textContent = data.word;
                     wordDisplay.classList.remove('loading');
-                    console.log('Успешно получено слово:', data.word, 'от', data.source || 'источник неизвестен');
+                    console.log('Успешно получено слово:', data.word);
                 } else {
-                    throw new Error('Пустой ответ от сервера');
+                    throw new Error('Получено некорректное слово: ' + data.word);
                 }
             } catch (error) {
                 console.error('Ошибка при получении слова:', error);
-                wordDisplay.textContent = '...';
+                wordDisplay.textContent = 'Ошибка сети';
                 wordDisplay.classList.remove('loading');
                 if (isManual) {
-                    alert('Не удалось обновить слово. Проверьте консоль (F12) для деталей.');
+                    alert('Не удалось обновить слово: ' + error.message);
                 }
             }
         }
+        
         function forceUpdate() {
-            // Для ручного обновления можно добавить параметр, чтобы обойти кэш браузера
             fetchWord(true);
         }
+        
         // Запуск при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
             fetchWord(false);
         });
     </script>
 </body>
-</html>"""
-
-with open('/workspace/index.html', 'w', encoding='utf-8') as f:
-    f.write(code)
-print("File written successfully")
+</html>
