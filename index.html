@@ -4,7 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>бля, сёдня...</title>
+    
+    <!-- 1. ПРЕДЗАГРУЗКА: Браузер начнёт качать шрифт сразу, не дожидаясь парсинга CSS -->
+    <link rel="preload" href="XTypewriter-Regular.woff2" as="font" type="font/woff2" crossorigin>
+
     <style>
+        /* 2. ОБЪЯВЛЕНИЕ ШРИФТА */
+        @font-face {
+            font-family: 'XTypewriter';
+            src: url('XTypewriter-Regular.woff2') format('woff2');
+            font-weight: 400; /* Regular = 400 */
+            font-style: normal;
+            font-display: swap; /* Текст покажется сразу системным шрифтом, а потом плавно заменится */
+        }
+
         body {
             margin: 0;
             padding: 20px;
@@ -16,7 +29,10 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            font-family: 'Arial', sans-serif;
+            
+            /* 3. СТЕК ШРИФТОВ: Твой шрифт -> системные моноширинные -> общий sans-serif */
+            font-family: 'XTypewriter', 'Courier New', Courier, 'Lucida Sans Typewriter', monospace, sans-serif;
+            
             text-align: center;
             color: black;
             overflow: hidden;
@@ -28,10 +44,11 @@
         }
 
         #word-display {
-            background-color: white;
+            background-color: white; /* Можно сделать rgba(255,255,255, 0.8), если фон будет перекрывать текст */
             color: black;
             font-size: 1.5rem;
             font-weight: normal;
+            padding: 10px 20px; /* Небольшой отступ, чтобы текст не прилипал к краям, если фон прозрачный */
         }
 
         .loading-text::after {
