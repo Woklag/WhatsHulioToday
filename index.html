@@ -75,7 +75,6 @@
                 if (data.word && data.word !== '...' && data.word !== 'Ошибка') {
                     const cleanWord = data.word.toLowerCase().replace(/\s*[\(\[\{].*$|,.*/, '');
                     
-                    // Сохраняем URL звука
                     if (data.sound) {
                         soundUrl = data.sound;
                     }
@@ -106,7 +105,6 @@
             }
         }
         
-        // Воспроизведение звука при клике/тапе в любом месте экрана
         document.addEventListener('click', () => {
             if (soundUrl) {
                 const audio = new Audio(soundUrl);
