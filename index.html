@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>бля, сёдня...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: white;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            color: black;
+            overflow: hidden;
+            transition: background 0.5s ease;
+        }
+
+        #word-display {
+            background-color: white;
+            color: black;
+            font-size: 1.5rem;
+            font-weight: normal;
+        }
+
+        .loading-text::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div id="word-display">
+        <span class="loading-text">юля сегодня</span>
+    </div>
+
+    <script>
+        const WORKER_URL = 'https://yulia-word.ratcatsnack.workers.dev';
+        const wordDisplay = document.getElementById('word-display');
+        
+        async function fetchWord() {
+            try {
+                const response = await fetch(WORKER_URL + '?t=' + Date.now(), {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.word && data.word !== '...' && data.word !== 'Ошибка') {
+                    const cleanWord = data.word.toLowerCase().replace(/\s*[\(\[\{].*$|,.*/, '');
+                    
+                    if (data.image) {
+                        const img = new Image();
+                        
+                        img.onload = () => {
+                            wordDisplay.innerHTML = 'юля сегодня ' + cleanWord;
+                            document.body.style.backgroundImage = `url('${data.image}')`;
+                        };
+                        
+                        img.onerror = () => {
+                            wordDisplay.innerHTML = 'юля сегодня ' + cleanWord;
+                        };
+                        
+                        img.src = data.image;
+                    } else {
+                        wordDisplay.innerHTML = 'юля сегодня ' + cleanWord;
+                    }
+                } else {
+                    throw new Error('Получено некорректное слово: ' + data.word);
+                }
+            } catch (error) {
+                console.error('Ошибка при получении слова:', error);
+                wordDisplay.textContent = 'включи впн...';
+                document.body.style.background = 'linear-gradient(to bottom, white 33.33%, blue 33.33%, blue 66.66%, red 66.66%)';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchWord();
+        });
+    </script>
+</body>
+</html>
