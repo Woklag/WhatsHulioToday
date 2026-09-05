@@ -51,6 +51,7 @@
     <script>
         const WORKER_URL = 'https://yulia-word.ratcatsnack.workers.dev';
         const wordDisplay = document.getElementById('word-display');
+        let soundUrl = null;
         
         async function fetchWord() {
             try {
@@ -69,6 +70,11 @@
                 
                 if (data.word && data.word !== '...' && data.word !== 'Ошибка') {
                     const cleanWord = data.word.toLowerCase().replace(/\s*[\(\[\{].*$|,.*/, '');
+                    
+                    // Сохраняем URL звука
+                    if (data.sound) {
+                        soundUrl = data.sound;
+                    }
                     
                     if (data.image) {
                         const img = new Image();
@@ -95,6 +101,15 @@
                 document.body.style.background = 'linear-gradient(to bottom, white 33.33%, blue 33.33%, blue 66.66%, red 66.66%)';
             }
         }
+        
+        // Воспроизведение звука при клике/тапе в любом месте экрана
+        document.addEventListener('click', () => {
+            if (soundUrl) {
+                const audio = new Audio(soundUrl);
+                audio.volume = 0.5;
+                audio.play().catch(e => console.log('Autoplay prevented:', e));
+            }
+        });
         
         document.addEventListener('DOMContentLoaded', () => {
             fetchWord();
