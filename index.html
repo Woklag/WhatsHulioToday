@@ -188,7 +188,7 @@
         document.addEventListener('click', (e) => {
             if (soundUrl) {
                 const audio = new Audio(soundUrl);
-                audio.volume = 0.5;
+                audio.volume = 0.7;
                 audio.play().catch(err => console.log('Autoplay prevented:', err));
             }
         });
