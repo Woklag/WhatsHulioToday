@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>бля, сёдня...</title>
-    <!-- Подключаем библиотеку Tone.js для работы со звуком -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body {
@@ -107,6 +106,12 @@
         let isDataLoaded = false;
         let isStartClicked = false;
         
+        // Создаем Promise, который разрешится, когда данные (слово и картинка) будут готовы
+        let resolveDataReady;
+        const dataReadyPromise = new Promise(resolve => {
+            resolveDataReady = resolve;
+        });
+
         function showMainScreen() {
             startScreen.style.display = 'none';
             wordDisplay.style.display = 'block';
@@ -140,6 +145,11 @@
                         if (isStartClicked) {
                             showMainScreen();
                         }
+                        // Сообщаем, что данные полностью загружены (включая картинку)
+                        if (resolveDataReady) {
+                            resolveDataReady();
+                            resolveDataReady = null;
+                        }
                     };
 
                     if (data.image) {
@@ -149,6 +159,7 @@
                             applyData();
                         };
                         img.onerror = () => {
+                            // Даже если картинка не загрузилась, показываем текст и разрешаем промис
                             applyData();
                         };
                         img.src = data.image;
@@ -166,6 +177,11 @@
                 if (isStartClicked) {
                     showMainScreen();
                 }
+                // Даже при ошибке разрешаем промис, чтобы музыка могла заиграть на экране ошибки
+                if (resolveDataReady) {
+                    resolveDataReady();
+                    resolveDataReady = null;
+                }
             }
         }
         
@@ -173,7 +189,10 @@
             isStartClicked = true;
             showMainScreen(); 
             
-            // Вызываем глобальную функцию из soundtrack.js
+            // Ждем, пока данные (слово и картинка) будут полностью загружены
+            await dataReadyPromise;
+            
+            // И только после этого запускаем музыку
             if (typeof window.playSoundtrack === 'function') {
                 await window.playSoundtrack();
             }
@@ -194,7 +213,6 @@
         });
     </script>
     
-    <!-- Подключаем ваш файл с генератором в самом конце -->
     <script src="soundtrack.js"></script>
 </body>
 </html>
