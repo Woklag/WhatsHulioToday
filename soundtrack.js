@@ -46,11 +46,12 @@ function buildScale(baseHz, centsArray, octaves) {
 
 async function loadAudioBuffer(url) {
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) throw new Error(`Не найден файл: ${url} (HTTP ${response.status})`);
     const arrayBuffer = await response.arrayBuffer();
     return await Tone.getContext().rawContext.decodeAudioData(arrayBuffer);
 }
 
+// ... (функции generateMelodyWalk, generateMelodyPhrases, generateMelodyMotifs, generateMethodRatios, generateCombinedMelody оставляем без изменений, они были правильными) ...
 function generateMelodyWalk(scale, length) {
     const pattern = [];
     let currentIndex = Math.floor(Math.random() * scale.length);
@@ -200,6 +201,7 @@ let currentSequences = [];
 let currentEffects = [];
 let isPrepared = false;
 let preparePromise = null;
+let useSynthFallback = false; // Флаг для запасного варианта
 
 async function prepareSoundtrack() {
     if (isPrepared || preparePromise) return preparePromise;
@@ -213,7 +215,7 @@ async function prepareSoundtrack() {
         currentEffects = [];
 
         const DURATION = randomInt(7, 93);
-        const bpm = randomInt(28, 166);
+        const bpm = randomInt(60, 120); // Чуть сузил BPM для более приятного звучания
 
         const selectedScale = SCALES[Math.floor(Math.random() * SCALES.length)];
         const CURRENT_SCALE = buildScale(SAMPLE_BASE_FREQ, selectedScale.cents, 2);
@@ -224,6 +226,7 @@ async function prepareSoundtrack() {
         const melodyNum = randomInt(1, INSTRUMENTS_COUNT);
 
         try {
+            // Пытаемся загрузить файлы
             const [kickBuffer, snareBuffer, hatBuffer, melodyBuffer] = await Promise.all([
                 loadAudioBuffer(`drums/drum (${kickNum}).wav`),
                 loadAudioBuffer(`drums/drum (${snareNum}).wav`),
@@ -250,136 +253,183 @@ async function prepareSoundtrack() {
             melodyPlayer.connect(melodyFx.effect).connect(masterFx.effect).connect(limiter);
 
             currentEffects = [kickFx.effect, snareFx.effect, hatFx.effect, melodyFx.effect, masterFx.effect];
-
-            Tone.Transport.bpm.value = bpm;
-
-            const totalSixteenthNotes = Math.floor((bpm / 60) * DURATION * 4);
             
-            const methodRatios = generateMethodRatios();
-            const fullMelodyPattern = generateCombinedMelody(CURRENT_SCALE, totalSixteenthNotes, methodRatios);
-
-            const totalNotes = fullMelodyPattern.filter(x => x.play).length;
-            let melodyPattern;
-
-            if (totalNotes < 3) {
-                melodyPattern = fullMelodyPattern;
-            } else {
-                const targetNotes = randomInt(3, totalNotes);
-                let noteCount = 0;
-                let cutPosition = 0;
-                for (let i = 0; i < fullMelodyPattern.length; i++) {
-                    if (fullMelodyPattern[i].play) {
-                        noteCount++;
-                        if (noteCount === targetNotes) {
-                            cutPosition = i + 1;
-                            break;
-                        }
-                    }
-                }
-                melodyPattern = fullMelodyPattern.slice(0, cutPosition);
-            }
-
-            const melodyRhythmMap = [];
-            for (let i = 0; i < totalSixteenthNotes; i++) {
-                const melodyIndex = i % melodyPattern.length;
-                melodyRhythmMap.push(melodyPattern[melodyIndex].play ? 1 : 0);
-            }
-
-            const interactionTypes = ['sync', 'contrast', 'density', 'independent'];
-            const interactionType = interactionTypes[Math.floor(Math.random() * interactionTypes.length)];
-            const couplingStrength = randomFloat(0.3, 0.8);
-
-            const kickPattern = [], snarePattern = [], hatPattern = [];
-
-            for (let i = 0; i < totalSixteenthNotes; i++) {
-                const strong = i % 4 === 0;
-                const melodyActive = melodyRhythmMap[i];
-                
-                let kickProb, snareProb, hatProb;
-                
-                if (interactionType === 'sync') {
-                    if (melodyActive) {
-                        kickProb = 0.4 + (couplingStrength * 0.4);
-                        snareProb = 0.2 + (couplingStrength * 0.3);
-                        hatProb = 0.3 + (couplingStrength * 0.4);
-                    } else {
-                        kickProb = 0.1;
-                        snareProb = 0.05;
-                        hatProb = 0.2;
-                    }
-                } else if (interactionType === 'contrast') {
-                    if (melodyActive) {
-                        kickProb = 0.1;
-                        snareProb = 0.05;
-                        hatProb = 0.15;
-                    } else {
-                        kickProb = 0.3 + (couplingStrength * 0.4);
-                        snareProb = 0.2 + (couplingStrength * 0.3);
-                        hatProb = 0.4 + (couplingStrength * 0.3);
-                    }
-                } else if (interactionType === 'density') {
-                    if (melodyActive) {
-                        kickProb = 0.2;
-                        snareProb = 0.1;
-                        hatProb = 0.25;
-                    } else {
-                        kickProb = 0.5 + (couplingStrength * 0.3);
-                        snareProb = 0.3 + (couplingStrength * 0.2);
-                        hatProb = 0.5 + (couplingStrength * 0.2);
-                    }
-                } else {
-                    kickProb = strong ? 0.5 : 0.15;
-                    snareProb = 0.15;
-                    hatProb = 0.4;
-                }
-                
-                if (strong && interactionType !== 'independent') {
-                    kickProb = Math.max(kickProb, 0.3);
-                }
-                
-                kickPattern.push(Math.random() < kickProb ? 1 : 0);
-                snarePattern.push(Math.random() < snareProb ? 1 : 0);
-                hatPattern.push(Math.random() < hatProb ? 1 : 0);
-            }
-
-            const drumIdx = Array.from({ length: totalSixteenthNotes }, (_, i) => i);
-            const melodyIdx = Array.from({ length: melodyPattern.length }, (_, i) => i);
-
-            const kickSeq = new Tone.Sequence((time, i) => { if (kickPattern[i]) kickPlayer.start(time); }, drumIdx, "16n");
-            const snareSeq = new Tone.Sequence((time, i) => { if (snarePattern[i]) snarePlayer.start(time); }, drumIdx, "16n");
-            const hatSeq = new Tone.Sequence((time, i) => { if (hatPattern[i]) hatPlayer.start(time); }, drumIdx, "16n");
-            
-            const melodySeq = new Tone.Sequence((time, i) => {
-                if (melodyPattern[i].play) {
-                    melodyPlayer.playbackRate = melodyPattern[i].note / SAMPLE_BASE_FREQ;
-                    melodyPlayer.start(time);
-                }
-            }, melodyIdx, "16n");
-
-            currentSequences = [kickSeq, snareSeq, hatSeq, melodySeq];
-            
+            setupSequences(CURRENT_SCALE, bpm, DURATION, kickPlayer, snarePlayer, hatPlayer, melodyPlayer);
             isPrepared = true;
+
         } catch (error) {
-            console.error("Ошибка подготовки саундтрека:", error);
+            console.warn("Не удалось загрузить аудиофайлы. Переключаюсь на встроенные синтезаторы.", error);
+            useSynthFallback = true;
+            
+            // ЗАПАСНОЙ ВАРИАНТ: Встроенные синтезаторы, если файлов нет
+            const kickSynth = new Tone.MembraneSynth().toDestination();
+            const snareSynth = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.005, decay: 0.1, sustain: 0 }
+            }).toDestination();
+            const hatSynth = new Tone.MetalSynth({
+                frequency: 200, envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
+                harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5
+            }).toDestination();
+            hatSynth.volume.value = -15;
+            
+            const melodySynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "triangle" },
+                envelope: { attack: 0.05, decay: 0.3, sustain: 0.4, release: 1 }
+            }).toDestination();
+            melodySynth.volume.value = -8;
+
+            const masterFx = createRandomEffect();
+            kickSynth.connect(masterFx.effect);
+            snareSynth.connect(masterFx.effect);
+            hatSynth.connect(masterFx.effect);
+            melodySynth.connect(masterFx.effect);
+            masterFx.effect.toDestination();
+            
+            currentEffects = [masterFx.effect];
+
+            // Переопределяем функции старта для синтезаторов
+            setupSequences(CURRENT_SCALE, bpm, DURATION, 
+                { start: (time) => kickSynth.triggerAttackRelease("C1", "8n", time) },
+                { start: (time) => snareSynth.triggerAttackRelease("8n", time) },
+                { start: (time) => hatSynth.triggerAttackRelease("32n", time) },
+                { 
+                    playbackRate: 1, 
+                    start: (time, freq) => { 
+                        // Для синтезатора частота передается иначе, упростим
+                        melodySynth.triggerAttackRelease(Tone.Frequency(freq || SAMPLE_BASE_FREQ, "hz").toNote(), "8n", time); 
+                    } 
+                }
+            );
+            isPrepared = true;
         }
     })();
 
     return preparePromise;
 }
 
-async function playSoundtrack() {
-    if (!isPrepared) {
-        await prepareSoundtrack();
+function setupSequences(scale, bpm, duration, kick, snare, hat, melody) {
+    Tone.Transport.bpm.value = bpm;
+    const totalSixteenthNotes = Math.floor((bpm / 60) * duration * 4);
+    
+    const methodRatios = generateMethodRatios();
+    const fullMelodyPattern = generateCombinedMelody(scale, totalSixteenthNotes, methodRatios);
+
+    const totalNotes = fullMelodyPattern.filter(x => x.play).length;
+    let melodyPattern;
+
+    if (totalNotes < 3) {
+        melodyPattern = fullMelodyPattern;
+    } else {
+        const targetNotes = randomInt(3, totalNotes);
+        let noteCount = 0;
+        let cutPosition = 0;
+        for (let i = 0; i < fullMelodyPattern.length; i++) {
+            if (fullMelodyPattern[i].play) {
+                noteCount++;
+                if (noteCount === targetNotes) {
+                    cutPosition = i + 1;
+                    break;
+                }
+            }
+        }
+        melodyPattern = fullMelodyPattern.slice(0, cutPosition);
     }
-    // Требуем пользовательского жеста для запуска AudioContext
-    await Tone.start();
-    Tone.Transport.start();
+
+    const melodyRhythmMap = [];
+    for (let i = 0; i < totalSixteenthNotes; i++) {
+        const melodyIndex = i % melodyPattern.length;
+        melodyRhythmMap.push(melodyPattern[melodyIndex].play ? 1 : 0);
+    }
+
+    const interactionTypes = ['sync', 'contrast', 'density', 'independent'];
+    const interactionType = interactionTypes[Math.floor(Math.random() * interactionTypes.length)];
+    const couplingStrength = randomFloat(0.3, 0.8);
+
+    const kickPattern = [], snarePattern = [], hatPattern = [];
+
+    for (let i = 0; i < totalSixteenthNotes; i++) {
+        const strong = i % 4 === 0;
+        const melodyActive = melodyRhythmMap[i];
+        
+        let kickProb, snareProb, hatProb;
+        
+        if (interactionType === 'sync') {
+            kickProb = melodyActive ? 0.4 + (couplingStrength * 0.4) : 0.1;
+            snareProb = melodyActive ? 0.2 + (couplingStrength * 0.3) : 0.05;
+            hatProb = melodyActive ? 0.3 + (couplingStrength * 0.4) : 0.2;
+        } else if (interactionType === 'contrast') {
+            kickProb = melodyActive ? 0.1 : 0.3 + (couplingStrength * 0.4);
+            snareProb = melodyActive ? 0.05 : 0.2 + (couplingStrength * 0.3);
+            hatProb = melodyActive ? 0.15 : 0.4 + (couplingStrength * 0.3);
+        } else if (interactionType === 'density') {
+            kickProb = melodyActive ? 0.2 : 0.5 + (couplingStrength * 0.3);
+            snareProb = melodyActive ? 0.1 : 0.3 + (couplingStrength * 0.2);
+            hatProb = melodyActive ? 0.25 : 0.5 + (couplingStrength * 0.2);
+        } else {
+            kickProb = strong ? 0.5 : 0.15;
+            snareProb = 0.15;
+            hatProb = 0.4;
+        }
+        
+        if (strong && interactionType !== 'independent') kickProb = Math.max(kickProb, 0.3);
+        
+        kickPattern.push(Math.random() < kickProb ? 1 : 0);
+        snarePattern.push(Math.random() < snareProb ? 1 : 0);
+        hatPattern.push(Math.random() < hatProb ? 1 : 0);
+    }
+
+    const drumIdx = Array.from({ length: totalSixteenthNotes }, (_, i) => i);
+    const melodyIdx = Array.from({ length: melodyPattern.length }, (_, i) => i);
+
+    const kickSeq = new Tone.Sequence((time, i) => { if (kickPattern[i]) kick.start(time); }, drumIdx, "16n");
+    const snareSeq = new Tone.Sequence((time, i) => { if (snarePattern[i]) snare.start(time); }, drumIdx, "16n");
+    const hatSeq = new Tone.Sequence((time, i) => { if (hatPattern[i]) hat.start(time); }, drumIdx, "16n");
+    
+    const melodySeq = new Tone.Sequence((time, i) => {
+        if (melodyPattern[i].play) {
+            if (useSynthFallback) {
+                melody.start(time, melodyPattern[i].note);
+            } else {
+                melody.playbackRate = melodyPattern[i].note / SAMPLE_BASE_FREQ;
+                melody.start(time);
+            }
+        }
+    }, melodyIdx, "16n");
+
+    currentSequences = [kickSeq, snareSeq, hatSeq, melodySeq];
 }
 
-// Запускаем фоновую подготовку сразу при загрузке страницы
+async function playSoundtrack() {
+    try {
+        if (!isPrepared) {
+            await prepareSoundtrack();
+        }
+        
+        // Критически важно для браузеров
+        await Tone.start();
+        
+        // Показываем сообщение, если сработал запасной вариант
+        if (useSynthFallback) {
+            const wordDisplay = document.getElementById('word-display');
+            if (wordDisplay && !wordDisplay.innerHTML.includes('(синтез)')) {
+                wordDisplay.innerHTML += '<br><span style="font-size:0.8rem; opacity:0.6;">(аудиофайлы не найдены, играет синтез)</span>';
+            }
+        }
+
+        Tone.Transport.start();
+    } catch (error) {
+        console.error("Критическая ошибка звука:", error);
+        const wordDisplay = document.getElementById('word-display');
+        if (wordDisplay) {
+            wordDisplay.innerHTML = 'Ошибка звука: ' + error.message;
+            wordDisplay.style.color = 'red';
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     prepareSoundtrack();
 });
 
-// Делаем функцию глобально доступной для вызова из HTML
 window.playSoundtrack = playSoundtrack;
