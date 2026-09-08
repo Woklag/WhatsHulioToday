@@ -172,13 +172,7 @@
         
         startBtn.addEventListener('click', () => {
             isStartClicked = true;
-            startBtn.style.display = 'none';
-            
-            if (isDataLoaded) {
-                showMainScreen();
-            } else {
-                wordDisplay.style.display = 'block';
-            }
+            showMainScreen(); // сразу скрываем start-screen и показываем word-display
         });
         
         document.addEventListener('click', (e) => {
