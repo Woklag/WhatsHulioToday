@@ -26,6 +26,8 @@
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
+            
+            cursor: pointer; 
         }
 
         #start-screen {
@@ -89,7 +91,6 @@
 </head>
 <body>
     <div id="start-screen">
-        <!-- Текст кнопки теперь будет заменен скриптом -->
         <button id="start-btn" type="button">узнай</button>
     </div>
 
@@ -97,7 +98,6 @@
         <span class="loading-text">юля сегодня</span>
     </div>
 
-    <!-- 1. ПОДКЛЮЧАЕМ ФАЙЛ СО СЛОВАМИ -->
     <script src="words.js"></script>
 
     <script>
@@ -194,11 +194,9 @@
         });
         
         document.addEventListener('DOMContentLoaded', () => {
-             
             const randomIndex = Math.floor(Math.random() * START_WORDS.length);
             startBtn.textContent = START_WORDS[randomIndex];
             
- 
             fetchWord();
         });
     </script>
