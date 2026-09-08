@@ -46,7 +46,9 @@ function buildScale(baseHz, centsArray, octaves) {
 
 async function loadAudioBuffer(url) {
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status} для ${url}`);
+    if (!response.ok) {
+        throw new Error(`Не удалось загрузить файл: ${url} (Ошибка ${response.status})`);
+    }
     const arrayBuffer = await response.arrayBuffer();
     return await Tone.getContext().rawContext.decodeAudioData(arrayBuffer);
 }
@@ -144,7 +146,7 @@ function generateCombinedMelody(scale, totalLength, ratios) {
 
 const EFFECTS_FACTORIES = [
     () => {
-        const delayTime = randomFloat(0.2, 3);
+        const delayTime = randomFloat(0.2, 1.0); // Исправлено: было до 3.0, что вызывало варнинг
         const feedback = randomFloat(0.1, 0.7);
         const wet = randomFloat(0, 1);
         const effect = new Tone.FeedbackDelay(delayTime, feedback);
@@ -201,15 +203,16 @@ let currentEffects = [];
 let hasGeneratedAndPlayed = false;
 
 async function playSoundtrack() {
-    // Гарантируем однократное срабатывание
     if (hasGeneratedAndPlayed) return;
 
     try {
-        // 1. САМОЕ ВАЖНОЕ: "Будим" аудиоконтекст ПЕРВЫМ же действием внутри клика
+        // 1. Будим аудио
         await Tone.start();
-        console.log("AudioContext успешно запущен по жесту пользователя");
+        console.log("AudioContext успешно запущен");
+        
+        // Гарантируем, что мастер-громкость на максимуме
+        Tone.Destination.volume.value = 0; 
 
-        // 2. Очищаем предыдущие состояния (на всякий случай)
         Tone.Transport.stop();
         Tone.Transport.cancel();
         currentSequences.forEach(seq => seq.dispose());
@@ -228,7 +231,8 @@ async function playSoundtrack() {
         const hatNum = randomInt(1, DRUMS_COUNT);
         const melodyNum = randomInt(1, INSTRUMENTS_COUNT);
 
-        // 3. Загружаем буферы (теперь это безопасно, так как контекст уже "running")
+        console.log(`Загрузка: drum (${kickNum}), drum (${snareNum}), drum (${hatNum}), instrument (${melodyNum})`);
+
         const [kickBuffer, snareBuffer, hatBuffer, melodyBuffer] = await Promise.all([
             loadAudioBuffer(`drums/drum (${kickNum}).wav`),
             loadAudioBuffer(`drums/drum (${snareNum}).wav`),
@@ -247,7 +251,8 @@ async function playSoundtrack() {
         const melodyFx = createRandomEffect();
         const masterFx = createRandomEffect();
 
-        const limiter = new Tone.Limiter(-19).toDestination();
+        // ИСПРАВЛЕНИЕ: Лимитер -19 глушил звук. Ставим -1 (стандартное безопасное значение)
+        const limiter = new Tone.Limiter(-1).toDestination();
 
         kickPlayer.connect(kickFx.effect).connect(masterFx.effect).connect(limiter);
         snarePlayer.connect(snareFx.effect).connect(masterFx.effect).connect(limiter);
@@ -355,7 +360,8 @@ async function playSoundtrack() {
         const hatSeq = new Tone.Sequence((time, i) => { if (hatPattern[i]) hatPlayer.start(time); }, drumIdx, "16n");
         
         const melodySeq = new Tone.Sequence((time, i) => {
-            if (melodyPattern[i].play) {
+            // ДОБАВЛЕНА ЗАЩИТА: проверяем, что нота существует
+            if (melodyPattern[i].play && melodyPattern[i].note) {
                 melodyPlayer.playbackRate = melodyPattern[i].note / SAMPLE_BASE_FREQ;
                 melodyPlayer.start(time);
             }
@@ -363,15 +369,15 @@ async function playSoundtrack() {
 
         currentSequences = [kickSeq, snareSeq, hatSeq, melodySeq];
 
-        // 4. Запускаем транспорт
         Tone.Transport.start();
         hasGeneratedAndPlayed = true;
-        console.log("Трек успешно сгенерирован и запущен");
+        console.log("Трек успешно сгенерирован и запущен!");
 
     } catch (error) {
-        console.error("Критическая ошибка при генерации/запуске саундтрека:", error);
+        console.error("Критическая ошибка:", error);
+        // Явное уведомление, если файлы не найдены
+        alert("Ошибка звука: " + error.message + "\n\nУбедитесь, что папки 'drums' и 'instruments' с .wav файлами находятся в той же директории, что и HTML файл!");
     }
 }
 
-// Делаем функцию глобально доступной для вызова из HTML
 window.playSoundtrack = playSoundtrack;
