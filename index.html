@@ -89,6 +89,7 @@
 </head>
 <body>
     <div id="start-screen">
+        <!-- Текст кнопки теперь будет заменен скриптом -->
         <button id="start-btn" type="button">узнай</button>
     </div>
 
@@ -96,7 +97,10 @@
         <span class="loading-text">юля сегодня</span>
     </div>
 
-        <script>
+    <!-- 1. ПОДКЛЮЧАЕМ ФАЙЛ СО СЛОВАМИ -->
+    <script src="words.js"></script>
+
+    <script>
         const WORKER_URL = 'https://yulia-word.ratcatsnack.workers.dev';
         const wordDisplay = document.getElementById('word-display');
         const startScreen = document.getElementById('start-screen');
@@ -169,11 +173,8 @@
             }
         }
         
-        // ГЛАВНОЕ ИЗМЕНЕНИЕ: обработчик теперь на контейнере, а не на кнопке
         startScreen.addEventListener('click', async (e) => {
-            // Останавливаем всплытие, чтобы этот клик не запустил звук с воркера
             e.stopPropagation();
-            
             isStartClicked = true;
             showMainScreen(); 
             
@@ -184,7 +185,6 @@
             }
         });
         
-        // Этот обработчик продолжает работать для кликов ПОСЛЕ того, как start-screen скрыт
         document.addEventListener('click', (e) => {
             if (soundUrl) {
                 const audio = new Audio(soundUrl);
@@ -194,6 +194,11 @@
         });
         
         document.addEventListener('DOMContentLoaded', () => {
+             
+            const randomIndex = Math.floor(Math.random() * START_WORDS.length);
+            startBtn.textContent = START_WORDS[randomIndex];
+            
+ 
             fetchWord();
         });
     </script>
