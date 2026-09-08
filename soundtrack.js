@@ -46,9 +46,7 @@ function buildScale(baseHz, centsArray, octaves) {
 
 async function loadAudioBuffer(url) {
     const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Не удалось загрузить файл: ${url} (Ошибка ${response.status})`);
-    }
+    if (!response.ok) throw new Error(`HTTP ${response.status} для ${url}`);
     const arrayBuffer = await response.arrayBuffer();
     return await Tone.getContext().rawContext.decodeAudioData(arrayBuffer);
 }
@@ -146,7 +144,8 @@ function generateCombinedMelody(scale, totalLength, ratios) {
 
 const EFFECTS_FACTORIES = [
     () => {
-        const delayTime = randomFloat(0.2, 1.0); // Исправлено: было до 3.0, что вызывало варнинг
+        // ИСПРАВЛЕНО: уменьшен максимальный delayTime, чтобы убрать варнинг в консоли
+        const delayTime = randomFloat(0.05, 0.9); 
         const feedback = randomFloat(0.1, 0.7);
         const wet = randomFloat(0, 1);
         const effect = new Tone.FeedbackDelay(delayTime, feedback);
@@ -185,9 +184,11 @@ const EFFECTS_FACTORIES = [
         return { effect };
     },
     () => {
-        const decay = randomFloat(0.5, 7);
+        // ИСПРАВЛЕНО: Reverb заменен на Freeverb, чтобы не было задержек генерации импульса
+        const roomSize = randomFloat(0.5, 0.9);
+        const dampening = randomFloat(1000, 5000);
         const wet = randomFloat(0.2, 1);
-        const effect = new Tone.Reverb(decay);
+        const effect = new Tone.Freeverb(roomSize, dampening);
         effect.wet.value = wet;
         return { effect };
     }
@@ -206,11 +207,9 @@ async function playSoundtrack() {
     if (hasGeneratedAndPlayed) return;
 
     try {
-        // 1. Будим аудио
         await Tone.start();
         console.log("AudioContext успешно запущен");
         
-        // Гарантируем, что мастер-громкость на максимуме
         Tone.Destination.volume.value = 0; 
 
         Tone.Transport.stop();
@@ -245,13 +244,18 @@ async function playSoundtrack() {
         const hatPlayer = new Tone.Player(hatBuffer);
         const melodyPlayer = new Tone.Player(melodyBuffer);
 
+        // Явно задаем громкость плееров
+        kickPlayer.volume.value = 0;
+        snarePlayer.volume.value = 0;
+        hatPlayer.volume.value = 0;
+        melodyPlayer.volume.value = 0;
+
         const kickFx = createRandomEffect();
         const snareFx = createRandomEffect();
         const hatFx = createRandomEffect();
         const melodyFx = createRandomEffect();
         const masterFx = createRandomEffect();
 
-        // ИСПРАВЛЕНИЕ: Лимитер -19 глушил звук. Ставим -1 (стандартное безопасное значение)
         const limiter = new Tone.Limiter(-1).toDestination();
 
         kickPlayer.connect(kickFx.effect).connect(masterFx.effect).connect(limiter);
@@ -360,23 +364,30 @@ async function playSoundtrack() {
         const hatSeq = new Tone.Sequence((time, i) => { if (hatPattern[i]) hatPlayer.start(time); }, drumIdx, "16n");
         
         const melodySeq = new Tone.Sequence((time, i) => {
-            // ДОБАВЛЕНА ЗАЩИТА: проверяем, что нота существует
             if (melodyPattern[i].play && melodyPattern[i].note) {
                 melodyPlayer.playbackRate = melodyPattern[i].note / SAMPLE_BASE_FREQ;
                 melodyPlayer.start(time);
             }
         }, melodyIdx, "16n");
 
+        // КРИТИЧЕСКИ ВАЖНО: Возвращаем запуск самих секвенсоров! Без этого они не играют.
+        kickSeq.start(0);
+        snareSeq.start(0);
+        hatSeq.start(0);
+        melodySeq.start(0);
+
         currentSequences = [kickSeq, snareSeq, hatSeq, melodySeq];
 
+        // Сбрасываем транспорт на начало и стартуем
+        Tone.Transport.position = "0:0:0";
         Tone.Transport.start();
+        
         hasGeneratedAndPlayed = true;
         console.log("Трек успешно сгенерирован и запущен!");
 
     } catch (error) {
         console.error("Критическая ошибка:", error);
-        // Явное уведомление, если файлы не найдены
-        alert("Ошибка звука: " + error.message + "\n\nУбедитесь, что папки 'drums' и 'instruments' с .wav файлами находятся в той же директории, что и HTML файл!");
+        alert("Ошибка звука: " + error.message);
     }
 }
 
