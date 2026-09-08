@@ -210,7 +210,7 @@ async function playSoundtrack() {
         await Tone.start();
         console.log("AudioContext успешно запущен");
         
-        Tone.Destination.volume.value = -5; 
+        Tone.Destination.volume.value = -7; 
 
         Tone.Transport.stop();
         Tone.Transport.cancel();
