@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>бля, сёдня...</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-    <style>
+        <style>
         body {
             margin: 0;
             padding: 20px;
@@ -26,8 +26,11 @@
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
-            
             cursor: pointer; 
+            
+            /* ДОБАВЛЕНО ДЛЯ СМАРТФОНОВ: */
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         #start-screen {
@@ -41,6 +44,10 @@
             align-items: center;
             background-color: white;
             z-index: 100;
+            
+            /* На всякий случай отключаем подсветку и здесь */
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         #start-btn {
@@ -54,6 +61,7 @@
             outline: none;
             padding: 0;
             margin: 0;
+            -webkit-tap-highlight-color: white;
         }
 
         @keyframes flicker {
@@ -74,6 +82,7 @@
             font-weight: normal;
             display: none;
             z-index: 50;
+            -webkit-tap-highlight-color: white;
         }
 
         .loading-text::after {
