@@ -106,7 +106,7 @@
         let isDataLoaded = false;
         let isStartClicked = false;
         
-        // Создаем Promise, который разрешится, когда данные (слово и картинка) будут готовы
+ 
         let resolveDataReady;
         const dataReadyPromise = new Promise(resolve => {
             resolveDataReady = resolve;
@@ -145,7 +145,7 @@
                         if (isStartClicked) {
                             showMainScreen();
                         }
-                        // Сообщаем, что данные полностью загружены (включая картинку)
+ 
                         if (resolveDataReady) {
                             resolveDataReady();
                             resolveDataReady = null;
@@ -159,7 +159,7 @@
                             applyData();
                         };
                         img.onerror = () => {
-                            // Даже если картинка не загрузилась, показываем текст и разрешаем промис
+ 
                             applyData();
                         };
                         img.src = data.image;
@@ -177,7 +177,7 @@
                 if (isStartClicked) {
                     showMainScreen();
                 }
-                // Даже при ошибке разрешаем промис, чтобы музыка могла заиграть на экране ошибки
+ 
                 if (resolveDataReady) {
                     resolveDataReady();
                     resolveDataReady = null;
@@ -189,10 +189,9 @@
             isStartClicked = true;
             showMainScreen(); 
             
-            // Ждем, пока данные (слово и картинка) будут полностью загружены
             await dataReadyPromise;
             
-            // И только после этого запускаем музыку
+
             if (typeof window.playSoundtrack === 'function') {
                 await window.playSoundtrack();
             }

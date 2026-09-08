@@ -144,7 +144,7 @@ function generateCombinedMelody(scale, totalLength, ratios) {
 
 const EFFECTS_FACTORIES = [
     () => {
-        // ИСПРАВЛЕНО: уменьшен максимальный delayTime, чтобы убрать варнинг в консоли
+ 
         const delayTime = randomFloat(0.05, 0.9); 
         const feedback = randomFloat(0.1, 0.7);
         const wet = randomFloat(0, 1);
@@ -184,7 +184,7 @@ const EFFECTS_FACTORIES = [
         return { effect };
     },
     () => {
-        // ИСПРАВЛЕНО: Reverb заменен на Freeverb, чтобы не было задержек генерации импульса
+ 
         const roomSize = randomFloat(0.5, 0.9);
         const dampening = randomFloat(1000, 5000);
         const wet = randomFloat(0.2, 1);
@@ -244,7 +244,7 @@ async function playSoundtrack() {
         const hatPlayer = new Tone.Player(hatBuffer);
         const melodyPlayer = new Tone.Player(melodyBuffer);
 
-        // Явно задаем громкость плееров
+ 
         kickPlayer.volume.value = 0;
         snarePlayer.volume.value = 0;
         hatPlayer.volume.value = 0;
@@ -370,7 +370,7 @@ async function playSoundtrack() {
             }
         }, melodyIdx, "16n");
 
-        // КРИТИЧЕСКИ ВАЖНО: Возвращаем запуск самих секвенсоров! Без этого они не играют.
+ 
         kickSeq.start(0);
         snareSeq.start(0);
         hatSeq.start(0);
