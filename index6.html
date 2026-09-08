@@ -90,7 +90,7 @@
 </head>
 <body>
     <div id="start-screen">
-        <button id="start-btn">узнай</button>
+        <button id="start-btn" type="button">узнай</button>
     </div>
 
     <div id="word-display">
@@ -144,16 +144,13 @@
 
                     if (data.image) {
                         const img = new Image();
-                        
                         img.onload = () => {
                             document.body.style.backgroundImage = `url('${data.image}')`;
                             applyData();
                         };
-                        
                         img.onerror = () => {
                             applyData();
                         };
-                        
                         img.src = data.image;
                     } else {
                         applyData();
@@ -174,9 +171,9 @@
         
         startBtn.addEventListener('click', async () => {
             isStartClicked = true;
-            showMainScreen(); // сразу скрываем start-screen и показываем word-display
+            showMainScreen(); 
             
-            // Запускаем заранее подготовленный саундтрек
+            // Вызываем глобальную функцию из soundtrack.js
             if (typeof window.playSoundtrack === 'function') {
                 await window.playSoundtrack();
             }
