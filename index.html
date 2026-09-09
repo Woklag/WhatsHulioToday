@@ -138,7 +138,7 @@
                 
                 const data = await response.json();
                 
-                if (data.word && data.word !== '...' && data.word !== 'Ошибка') {
+                if (data.word && data.word !== '...' && data.word !== 'в вашей котлете муха...,') {
                     const cleanWord = data.word.toLowerCase().replace(/\s*[\(\[\{].*$|,.*/, '');
                     
                     if (data.sound) soundUrl = data.sound;
@@ -165,10 +165,10 @@
                         applyData();
                     }
                 } else {
-                    throw new Error('Получено некорректное слово: ' + data.word);
+                    throw new Error('тупое слово: ' + data.word);
                 }
             } catch (error) {
-                console.error('Ошибка при получении слова:', error);
+                console.error('слов нет...:', error);
                 isDataLoaded = true;
                 wordDisplay.textContent = 'включи впн...';
                 document.body.style.background = 'linear-gradient(to bottom, white 33.33%, blue 33.33%, blue 66.66%, red 66.66%)';
